@@ -1,0 +1,43 @@
+sp_configure 'show advanced options', 1 
+GO 
+RECONFIGURE; 
+GO 
+sp_configure 'Ole Automation Procedures', 1 
+GO 
+RECONFIGURE; 
+GO 
+sp_configure 'show advanced options', 1 
+GO 
+RECONFIGURE;
+
+
+Declare @Object as Int;
+DECLARE @hr  int
+Declare @json as table(Json_Table nvarchar(max))
+
+Exec @hr=sp_OACreate 'MSXML2.ServerXMLHTTP.6.0', @Object OUT;
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @Object
+Exec @hr=sp_OAMethod @Object, 'open', NULL, 'get',
+                 'https://opendata.arcgis.com/datasets/4649ddcede7c4a9289f168c3b2e6e3ee_0.geojson', --Your Web Service Url (invoked)
+                 'false'
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @Object
+Exec @hr=sp_OAMethod @Object, 'send'
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @Object
+Exec @hr=sp_OAMethod @Object, 'responseText', @json OUTPUT
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @Object
+
+INSERT into @json (Json_Table) exec sp_OAGetProperty @Object, 'responseText'
+-- select the JSON string
+select * from @json
+-- Parse the JSON string
+SELECT * FROM OPENJSON((select * from @json), N'$.features')
+WITH (   
+      [OBJECTID] nvarchar(max) N'$.properties.OBJECTID'   ,
+      [CONTROL_SECT_JOB]   nvarchar(max) N'$.properties.CONTROL_SECT_JOB',
+      [DISTRICT_NUMBER]   nvarchar(max) N'$.properties.DISTRICT_NUMBER',
+      [COUNTY_NUMBER]   nvarchar(max) N'$.properties.COUNTY_NUMBER',
+      [HIGHWAY_NUMBER]   nvarchar(max) N'$.properties.HIGHWAY_NUMBER',
+      [PROJ_CLASS]   nvarchar(max) N'$.properties.PROJ_CLASS',
+	  [PROJ_CLASS]   nvarchar(max) N'$.properties.geometry.paths'
+)
+EXEC sp_OADestroy @Object
