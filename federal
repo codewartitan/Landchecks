@@ -1,0 +1,111 @@
+USE [federal_testing]
+GO
+
+/****** Object:  StoredProcedure [dbo].[Federal]    Script Date: 1/18/2020 9:22:35 PM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE OR ALTER procedure [dbo].[Federal]
+@tablename varchar(max)
+AS
+BEGIN
+declare
+ @sqlcmd varchar(4000)
+ --set @sqlcmd =  ( 'SELECT   *  FROm '+@tablename)
+ --EXECUTE (@sqlcmd);
+ set @sqlcmd =(
+ 'select distinct  substring(concat('' <b> EPA Federal : </b> '',STATE_code,    '':'', PRIMARY_NAME ),1,100)   AS OrgName,
+ '''' AS FirstName,
+'''' AS LastName,
+LOCATION_ADDRESS AS Address1,
+'''' AS Address2,
+CITY_NAME AS City,
+STATE_code AS State,   
+POSTAL_CODE AS PostalCode,
+''US'' AS Country,
+REGISTRY_ID AS phone,
+COUNTY_NAME AS Mobile,
+''internal@landchecks.com'' AS Email,
+'''' AS Password,
+FRS_FACILITY_DETAIL_REPORT_URL AS URL,
+ ''''  AS Title,
+ substring(concat(
+ ''<b>RegistryID:</b>'' ,REGISTRY_ID,
+ ''<b> Site Type:</b>'' ,SITE_TYPE_NAME,
+ ''<b> Type:</b>'' ,INTEREST_TYPES,
+ ''<b> Program:</b>'' ,PGM_SYS_ACRNMS,
+ ''<b> EPA File Dated: Dec.12.2019</b> '' ,
+ '' <b> NAICS:</b> '',NAICS_CODE_DESCRIPTIONS
+ ),1,500)AS ShortDescription ,
+ concat  ( 
+''<b> Standard Industrail Code: </b> '',SIC_CODE_DESCRIPTIONS,
+ 
+'' <b> Program Code: </b> '',PGM_SYS_ACRNMS,
+
+''<b> Program Description:</b> '',
+case 
+when PGM_SYS_ACRNMS like ''ACRES%'' then ''EPA-Brownfields''
+when PGM_SYS_ACRNMS like  ''LANDFILL%'' then ''EPA-Landfill''
+when PGM_SYS_ACRNMS like  ''CERCLIS%'' then ''EPA-Comprehensive Environmental Response''
+when PGM_SYS_ACRNMS like  ''EIS%'' then ''EPA-Emission Inventory System''
+when PGM_SYS_ACRNMS like  ''CEDRI%'' then ''EPA-Emissions Data Reporting''
+when PGM_SYS_ACRNMS like  ''ECRM%'' then ''EPA-Enforcement Criminal Records''
+when PGM_SYS_ACRNMS like  ''LUST-ARRA%'' then ''EPA-Leaking Underground Storage Tank''
+when PGM_SYS_ACRNMS like  ''NCDB%'' then ''EPA-National Compliance Data Base''
+when PGM_SYS_ACRNMS like  ''NPDES%'' then ''EPA-National Pollutant Discharge Elimination''
+when PGM_SYS_ACRNMS like  ''RADINFO%'' then ''EPA-Radiation Information Database''
+when PGM_SYS_ACRNMS like  ''RCRAInfo%'' then ''EPA-Resource Conservation & Recovery Act ''
+when PGM_SYS_ACRNMS like  ''RMP%'' then ''EPA-Risk Management Plan''
+when PGM_SYS_ACRNMS like  ''TRIS%'' then ''EPA-Toxics Release Inventory''
+when PGM_SYS_ACRNMS like  ''UST%'' then ''EPA-Underground Storage Tank ''
+
+else     ''Program  Name TBD''
+end,
+''<b>Hydrologic Unit Code:</b>'',HUC_CODE,
+''<b> Adddate:</b>''  ,CONVERT(DATE, GETDATE())
+)     AS  Description ,
+case 
+when PGM_SYS_ACRNMS like ''ACRES%'' then ''EPA-Brownfields''
+when PGM_SYS_ACRNMS like  ''LANDFILL%'' then ''Landfill''
+else     ''EPA''
+end AS Category1,
+'''' AS Category2,
+'''' AS Category3,
+'''' AS Category4,
+'''' AS Category5,
+''N'' AS Claimable,
+LATITUDE83 AS Latitude,
+LONGITUDE83 AS Longitude,
+'' '' AS PhotoURL
+
+ into STATE_SINGLE_CT2
+ 
+ from (select *,row_number () over (partition by LATITUDE83  ,LONGITUDE83 order by REGISTRY_ID)rwnum
+from '+@tablename+' where LATITUDE83 is not null and LONGITUDE83 is not null ) m
+where m.rwnum =1  and
+PGM_SYS_ACRNMS like ''Acres%'' or  
+PGM_SYS_ACRNMS like ''CEDRI%''   or 
+PGM_SYS_ACRNMS like ''CERCLIS%'' or
+PGM_SYS_ACRNMS like ''EIS%'' or
+PGM_SYS_ACRNMS like ''ECRM%'' or
+PGM_SYS_ACRNMS like ''LANDFILL%''  or 
+PGM_SYS_ACRNMS like ''LUST-ARRA%'' or
+PGM_SYS_ACRNMS like ''NCDB%'' or
+PGM_SYS_ACRNMS like ''NPDES%'' or
+PGM_SYS_ACRNMS like ''RADINFO%'' or
+PGM_SYS_ACRNMS like ''RCRAInfo%'' or
+PGM_SYS_ACRNMS like ''RMP%'' or
+PGM_SYS_ACRNMS like ''TRIS%'' or
+PGM_SYS_ACRNMS like ''UST%''
+')
+
+ EXECUTE (@sqlcmd);
+
+END
+GO
+
+
+
